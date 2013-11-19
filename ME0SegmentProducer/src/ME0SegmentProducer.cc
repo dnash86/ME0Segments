@@ -1,0 +1,281 @@
+/** \file ME0SegmentProducer.cc
+ *
+ */
+
+#include <ME0Reconstruction/ME0SegmentProducer/src/ME0SegmentProducer.h>
+//#include <RecoLocalMuon/ME0Segment/src/ME0SegmentBuilder.h>
+
+#include <FWCore/PluginManager/interface/ModuleDef.h>
+#include <FWCore/Framework/interface/MakerMacros.h>
+
+#include <DataFormats/Common/interface/Handle.h>
+#include <FWCore/Framework/interface/ESHandle.h>
+#include <FWCore/MessageLogger/interface/MessageLogger.h> 
+
+#include <Geometry/Records/interface/MuonGeometryRecord.h>
+
+#include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>
+
+// #include "CLHEP/Matrix/SymMatrix.h"
+// #include "CLHEP/Matrix/Matrix.h"
+// #include "CLHEP/Vector/ThreeVector.h"
+
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
+//#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+
+#include "TLorentzVector.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
+#include "TRandom3.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
+
+#include <math.h>
+
+ME0SegmentProducer::ME0SegmentProducer(const edm::ParameterSet& pas) : iev(0) {
+	
+  //inputObjectsTag = pas.getParameter<edm::InputTag>("inputObjects");
+    //segmentBuilder_ = new ME0SegmentBuilder(pas); // pass on the PS
+    Rand = new TRandom3();
+  	// register what this produces
+    //produces<ME0SegmentCollection>();
+    produces<std::vector<ME0Segment> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
+}
+
+ME0SegmentProducer::~ME0SegmentProducer() {
+
+  //LogDebug("ME0SegmentProducer") << "deleting ME0SegmentProducer after " << iev << " events w/csc data.";
+    //delete segmentBuilder_;
+}
+
+void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
+
+    LogDebug("ME0SegmentProducer") << "start producing segments for " << ++iev << "th event ";
+	
+    // find the geometry (& conditions?) for this event & cache it in the builder
+  
+    // edm::ESHandle<ME0Geometry> h;
+    // setup.get<MuonGeometryRecord>().get(h);
+    // const ME0Geometry* pgeom = &*h;
+
+
+    //segmentBuilder_->setGeometry(pgeom);
+	
+    // get the collection of ME0RecHit2D
+
+    // edm::Handle<ME0RecHit2DCollection> cscRecHits;
+    // ev.getByLabel(inputObjectsTag, cscRecHits);  
+
+    // create empty collection of Segments
+    //std::auto_ptr<ME0SegmentCollection> oc( new ME0SegmentCollection );       //Change to collection
+
+    //Do the stuff, put the smeared stuff in to oc
+
+    //Getting the objects we'll need
+    
+    using namespace edm;
+    ESHandle<MagneticField> bField;
+    setup.get<IdealMagneticFieldRecord>().get(bField);
+    ESHandle<Propagator> shProp;
+    setup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorAlong", shProp);
+
+    
+    using namespace reco;
+
+    Handle<GenParticleCollection> genParticles;
+    ev.getByLabel<GenParticleCollection>("genParticles", genParticles);
+
+
+    unsigned int gensize=genParticles->size();
+
+    // LocalPoint Point;
+    // LocalVector Direction;
+    AlgebraicSymMatrix theCovMatrix(4,0);
+    AlgebraicMatrix theRotMatrix(4,4,0);
+    //Big loop over all gen particles in the event, to propagate them and make segments
+    std::auto_ptr<std::vector<ME0Segment> > oc( new std::vector<ME0Segment> ); 
+    std::cout<<"Before loop"<<std::endl;
+    for(unsigned int i=0; i<gensize; ++i) {
+      const reco::GenParticle& CurrentParticle=(*genParticles)[i];
+      //Right now just doing status one muons...
+      if ( (CurrentParticle.status()==1) && ( (CurrentParticle.pdgId()==13)  || (CurrentParticle.pdgId()==-13) ) ){  
+
+	//Setup
+	float zSign  = CurrentParticle.pz()/fabs(CurrentParticle.pz());
+	float zValue = 560. * zSign;
+	Plane *plane = new Plane(Surface::PositionType(0,0,zValue),Surface::RotationType());
+	TLorentzVector Momentum;
+	Momentum.SetPtEtaPhiM(CurrentParticle.pt()
+			      ,CurrentParticle.eta()
+			      ,CurrentParticle.phi()
+			      ,CurrentParticle.mass());
+	CLHEP::Hep3Vector p3gen(Momentum.Px(), Momentum.Py(), Momentum.Pz());
+	CLHEP::Hep3Vector r3gen = CLHEP::Hep3Vector(CurrentParticle.vertex().x()
+						    ,CurrentParticle.vertex().y()
+						    ,CurrentParticle.vertex().z());
+	std::cout<<"Before0"<<std::endl;
+	AlgebraicSymMatrix66 covGen = AlgebraicMatrixID(); 
+	covGen *= 1e-20; // initialize to sigma=1e-10 .. should get overwhelmed by MULS
+	AlgebraicSymMatrix66 covFinal;
+	int chargeGen =  CurrentParticle.charge(); 
+	std::cout<<"Before1"<<std::endl;
+	//Propagation
+	FreeTrajectoryState initstate = getFromCLHEP(p3gen, r3gen, chargeGen, covGen, &*bField);
+	
+	SteppingHelixStateInfo startstate(initstate);
+	SteppingHelixStateInfo laststate;
+
+	const SteppingHelixPropagator* ThisshProp = 
+	  dynamic_cast<const SteppingHelixPropagator*>(&*shProp);
+	std::cout<<"Before2"<<std::endl;
+	laststate = ThisshProp->propagate(startstate, *plane);
+
+	std::cout<<"Before2.5"<<std::endl;
+	FreeTrajectoryState finalstate;
+	laststate.getFreeState(finalstate);
+	
+	CLHEP::Hep3Vector p3Final, r3Final;
+	getFromFTS(finalstate, p3Final, r3Final, chargeGen, covFinal);
+	std::cout<<"Before3"<<std::endl;
+	//Smearing the position
+
+	Double_t rho = r3Final.perp();
+	Double_t phi = r3Final.phi();
+
+	Double_t drhodx = r3Final.x()/rho;
+	Double_t drhody = r3Final.y()/rho;
+	Double_t dphidx = -r3Final.y()/(rho*rho);
+	Double_t dphidy = r3Final.x()/(rho*rho);
+	
+	Double_t sigmarho = sqrt( drhodx*drhodx*covFinal(0,0)+
+				  drhody*drhody*covFinal(1,1)+
+				  drhodx*drhody*2*covFinal(0,1) );
+
+	Double_t sigmaphi = sqrt( dphidx*dphidx*covFinal(0,0)+
+				  dphidy*dphidy*covFinal(1,1)+
+				  dphidx*dphidy*2*covFinal(0,1) );
+	
+
+	Double_t newrho = rho + Rand->Gaus(0,sigmarho);//Add smearing here
+	Double_t newphi = phi + Rand->Gaus(0,sigmaphi);
+	std::cout<<"Before3"<<std::endl;
+	CLHEP::Hep3Vector SmearedPosition(1,1,1);
+	SmearedPosition.setPerp(newrho);  SmearedPosition.setPhi(newphi);  SmearedPosition.setZ(r3Final.z());
+	//Smearing the direction 
+	
+	Double_t sigma_px = covFinal(3,3);
+	Double_t sigma_py = covFinal(4,4);
+	Double_t sigma_pz = covFinal(5,5);
+
+	Double_t new_px = p3Final.x() + Rand->Gaus(0,sigma_px);//Add smearing here
+	Double_t new_py = p3Final.y() + Rand->Gaus(0,sigma_py);
+	Double_t new_pz = p3Final.z() + Rand->Gaus(0,sigma_pz);
+
+	CLHEP::Hep3Vector SmearedDirection(new_px,new_py,new_pz);
+
+	//Filling the ME0Segment
+
+	LocalPoint Point(SmearedPosition.x(),SmearedPosition.y(),SmearedPosition.z());
+	LocalVector Direction(SmearedDirection.x(),SmearedDirection.y(),SmearedDirection.z());
+
+	//theCovMatrix[2][3] = 0;//1e-20;
+	theCovMatrix[2][2] = 0.01;
+	theCovMatrix[3][3] = 2.;
+
+	//theCovMatrix[0][1] = 0;//1e-20;
+	theCovMatrix[0][0] = 0.00025;
+	theCovMatrix[1][1] = 0.07;
+
+	// theCovMatrix[0][2] = 0;//1e-20;
+	// theCovMatrix[0][3] = 0;//1e-20;
+	// theCovMatrix[1][2] = 0;//1e-20;
+	// theCovMatrix[1][3] = 0;//1e-20;
+
+	//Do the transformation to global coordinates on the Cov Matrix
+	// double piover2 = acos(0.);
+	// theRotMatrix[0][0] = cos(SmearedPosition.phi()+piover2);
+	// theRotMatrix[1][1] = cos(SmearedPosition.phi()+piover2);
+	// theRotMatrix[2][2] = cos(SmearedPosition.phi()+piover2);
+	// theRotMatrix[3][3] = cos(SmearedPosition.phi()+piover2);
+	
+	// theRotMatrix[0][1] = sin(SmearedPosition.phi()+piover2);
+	// theRotMatrix[1][0] = sin(-(SmearedPosition.phi()+piover2));
+
+	// theRotMatrix[2][3] = sin(SmearedPosition.phi()+piover2);
+	// theRotMatrix[3][2] = sin(-(SmearedPosition.phi()+piover2));
+
+	// theCovMatrix = SquareMultiplyMatrices(theRotMatrix,theCovMatrix,4);
+
+	oc->push_back(ME0Segment(Point, Direction,theCovMatrix,0.));    //Maybe we need a 'new' here?
+	//oc->push_back(ME0Segment());    //Maybe we need a 'new' here?
+      }
+    }
+  	// fill the collection
+    //segmentBuilder_->build(cscRecHits.product(), *oc); //@@ FILL oc
+
+    // put collection in event
+    ev.put(oc);
+}
+
+FreeTrajectoryState
+ME0SegmentProducer::getFromCLHEP(const CLHEP::Hep3Vector& p3, const CLHEP::Hep3Vector& r3, 
+					      int charge, const AlgebraicSymMatrix55& cov,
+					      const MagneticField* field){
+
+  GlobalVector p3GV(p3.x(), p3.y(), p3.z());
+  GlobalPoint r3GP(r3.x(), r3.y(), r3.z());
+  GlobalTrajectoryParameters tPars(r3GP, p3GV, charge, field);
+
+  CurvilinearTrajectoryError tCov(cov);
+  
+  return cov.kRows == 5 ? FreeTrajectoryState(tPars, tCov) : FreeTrajectoryState(tPars) ;
+}
+
+FreeTrajectoryState
+ME0SegmentProducer::getFromCLHEP(const CLHEP::Hep3Vector& p3, const CLHEP::Hep3Vector& r3, 
+					      int charge, const AlgebraicSymMatrix66& cov,
+					      const MagneticField* field){
+
+  GlobalVector p3GV(p3.x(), p3.y(), p3.z());
+  GlobalPoint r3GP(r3.x(), r3.y(), r3.z());
+  GlobalTrajectoryParameters tPars(r3GP, p3GV, charge, field);
+
+  CartesianTrajectoryError tCov(cov);
+  
+  return cov.kRows == 6 ? FreeTrajectoryState(tPars, tCov) : FreeTrajectoryState(tPars) ;
+}
+
+void ME0SegmentProducer::getFromFTS(const FreeTrajectoryState& fts,
+				    CLHEP::Hep3Vector& p3, CLHEP::Hep3Vector& r3, 
+				    int& charge, AlgebraicSymMatrix66& cov){
+  GlobalVector p3GV = fts.momentum();
+  GlobalPoint r3GP = fts.position();
+
+  p3.set(p3GV.x(), p3GV.y(), p3GV.z());
+  r3.set(r3GP.x(), r3GP.y(), r3GP.z());
+  
+  charge = fts.charge();
+  cov = fts.hasError() ? fts.cartesianError().matrix() : AlgebraicSymMatrix66();
+
+}
+
+// AlgebraicMatrix ME0SegmentProducer::SquareMultiplyMatrices(const AlgebraicMatrix& M, const AlgebraicSymMatrix& N, int size){
+//   AlgebraicMatrix Output(size,size,0);
+//   for (int i=0; i<size;i++){
+//     for (int j=0; j<size;j++){
+//       for (int k=0; k<size;k++){
+// 	Output[i][j] += M[i][k]*N[k][j];
+//       }
+//     }
+//   }
+//   return Output
+// }
+
+
+
+ DEFINE_FWK_MODULE(ME0SegmentProducer);

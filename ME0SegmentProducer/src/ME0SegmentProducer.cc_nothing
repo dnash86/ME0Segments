@@ -1,0 +1,76 @@
+/** \file ME0SegmentProducer.cc
+ *
+ */
+
+#include <ME0Reconstruction/ME0SegmentProducer/src/ME0SegmentProducer.h>
+//#include <RecoLocalMuon/ME0Segment/src/ME0SegmentBuilder.h>
+
+#include <FWCore/PluginManager/interface/ModuleDef.h>
+#include <FWCore/Framework/interface/MakerMacros.h>
+
+#include <DataFormats/Common/interface/Handle.h>
+#include <FWCore/Framework/interface/ESHandle.h>
+#include <FWCore/MessageLogger/interface/MessageLogger.h> 
+
+#include <Geometry/Records/interface/MuonGeometryRecord.h>
+
+#include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>
+
+// #include "CLHEP/Matrix/SymMatrix.h"
+// #include "CLHEP/Matrix/Matrix.h"
+// #include "CLHEP/Vector/ThreeVector.h"
+
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
+//#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+
+#include "TLorentzVector.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
+#include "TRandom3.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
+
+ME0SegmentProducer::ME0SegmentProducer(const edm::ParameterSet& pas) : iev(0) {
+	
+
+    produces<std::vector<ME0Segment> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
+}
+
+ME0SegmentProducer::~ME0SegmentProducer() {
+
+}
+
+void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
+
+    
+    std::auto_ptr<std::vector<ME0Segment> > oc( new std::vector<ME0Segment> ); 
+
+
+    LocalPoint Point(1.,1.,1.);
+    LocalVector Direction(1.,1.,1.);
+ 
+    AlgebraicSymMatrix theCovMatrix(4,1);
+    	theCovMatrix[2][3] = 1e-20;
+    	theCovMatrix[2][2] = 0.01;
+    	theCovMatrix[3][3] = 2.;
+    	theCovMatrix[0][1] = 1e-20;
+    	theCovMatrix[0][0] = 0.00025;
+    	theCovMatrix[1][1] = 0.07;
+    	theCovMatrix[0][2] = 1e-20;
+    	theCovMatrix[0][3] = 1e-20;
+    	theCovMatrix[1][2] = 1e-20;
+    	theCovMatrix[1][3] = 1e-20;
+
+    oc->push_back(ME0Segment(Point, Direction,theCovMatrix,0.));
+    //oc->push_back(ME0Segment());
+   
+    ev.put(oc);
+}
+
+
+ DEFINE_FWK_MODULE(ME0SegmentProducer);
