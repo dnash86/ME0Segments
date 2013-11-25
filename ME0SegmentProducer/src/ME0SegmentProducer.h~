@@ -20,12 +20,14 @@
 //#include "CLHEP/Matrix/Matrix.h"
 #include "CLHEP/Vector/ThreeVector.h"
 #include "DataFormats/Math/interface/AlgebraicROOTObjects.h"
+#include "DataFormats/CLHEP/interface/AlgebraicObjects.h"
 
 //class ME0SegmentBuilder; 
 
 class FreeTrajectoryState;
 class MagneticField;
 class TRandom3;
+//class AlgebraicMatrix;
 class ME0SegmentProducer : public edm::EDProducer {
 public:
     /// Constructor
@@ -46,6 +48,9 @@ public:
     void getFromFTS(const FreeTrajectoryState& ,
 		  CLHEP::Hep3Vector& , CLHEP::Hep3Vector& , 
 		  int& , AlgebraicSymMatrix66& );
+
+    void RotateCovMatrix(const AlgebraicMatrix&, const AlgebraicSymMatrix&,int, AlgebraicSymMatrix&);
+
 
 private:
     TRandom3 * Rand;

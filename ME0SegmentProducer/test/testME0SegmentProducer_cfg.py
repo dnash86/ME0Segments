@@ -25,7 +25,7 @@ process.source = cms.Source("PoolSource",
 
 )
 
-process.propAna = cms.EDProducer("ME0SegmentProducer")
+process.me0SegmentProducer = cms.EDProducer("ME0SegmentProducer")
 
 process.p = cms.Path(process.propAna)
 process.PoolSource.fileNames = [

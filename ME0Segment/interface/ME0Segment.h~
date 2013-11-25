@@ -21,7 +21,7 @@ class ME0Segment : public RecSegment {
 public:
 
     /// Default constructor
- ME0Segment() : theOrigin(0,0,0), theLocalDirection(0,0,0), theCovMatrix(4,3.14),theChi2(0.) {}
+ ME0Segment() : theOrigin(0,0,0), theLocalDirection(0,0,0), theCovMatrix(4,0),theChi2(0.) {}
 	
     /// Constructor
     ME0Segment(LocalPoint origin, LocalVector direction, AlgebraicSymMatrix errors, double chi2);
@@ -66,6 +66,7 @@ public:
  private:
     
     //std::vector<ME0RecHit2D> theME0RecHits;
+    //  CAVEAT: these "Local" paramaters will in fact be filled by global coordinates
     LocalPoint theOrigin;   // in chamber frame - the GeomDet local coordinate system
     LocalVector theLocalDirection; // in chamber frame - the GeomDet local coordinate system
     AlgebraicSymMatrix theCovMatrix; // the covariance matrix

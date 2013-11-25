@@ -5,8 +5,7 @@
  * Produces a collection of ME0Segment's in endcap muon ME0s. 
  *
  * $Date: 2010/03/11 23:48:11 $
- * $Revision: 1.7 $
- * \author M. Sani
+ * \author David Nash
  */
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -20,13 +19,14 @@
 //#include "CLHEP/Matrix/Matrix.h"
 #include "CLHEP/Vector/ThreeVector.h"
 #include "DataFormats/Math/interface/AlgebraicROOTObjects.h"
-//#include "DataFormats/CLHEP/interface/AlgebraicObjects.h"
+#include "DataFormats/CLHEP/interface/AlgebraicObjects.h"
 
 //class ME0SegmentBuilder; 
 
 class FreeTrajectoryState;
 class MagneticField;
 class TRandom3;
+//class AlgebraicMatrix;
 class ME0SegmentProducer : public edm::EDProducer {
 public:
     /// Constructor
@@ -48,7 +48,7 @@ public:
 		  CLHEP::Hep3Vector& , CLHEP::Hep3Vector& , 
 		  int& , AlgebraicSymMatrix66& );
 
-    //AlgebraicMatrix SquareMultiplyMatrices(const AlgebraicMatrix&, const AlgebraicSymMatrix&,int);
+    void RotateCovMatrix(const AlgebraicMatrix&, const AlgebraicSymMatrix&,int, AlgebraicSymMatrix&);
 
 
 private:

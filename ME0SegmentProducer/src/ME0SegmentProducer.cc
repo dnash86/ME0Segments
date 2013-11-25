@@ -1,5 +1,6 @@
 /** \file ME0SegmentProducer.cc
  *
+ * \author David Nash
  */
 
 #include <ME0Reconstruction/ME0SegmentProducer/src/ME0SegmentProducer.h>
@@ -96,10 +97,11 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
     // LocalPoint Point;
     // LocalVector Direction;
     AlgebraicSymMatrix theCovMatrix(4,0);
+    AlgebraicSymMatrix theGlobalCovMatrix(4,0);
     AlgebraicMatrix theRotMatrix(4,4,0);
     //Big loop over all gen particles in the event, to propagate them and make segments
     std::auto_ptr<std::vector<ME0Segment> > oc( new std::vector<ME0Segment> ); 
-    std::cout<<"Before loop"<<std::endl;
+    //std::cout<<"Before loop"<<std::endl;
     for(unsigned int i=0; i<gensize; ++i) {
       const reco::GenParticle& CurrentParticle=(*genParticles)[i];
       //Right now just doing status one muons...
@@ -118,12 +120,12 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	CLHEP::Hep3Vector r3gen = CLHEP::Hep3Vector(CurrentParticle.vertex().x()
 						    ,CurrentParticle.vertex().y()
 						    ,CurrentParticle.vertex().z());
-	std::cout<<"Before0"<<std::endl;
+	//std::cout<<"Before0"<<std::endl;
 	AlgebraicSymMatrix66 covGen = AlgebraicMatrixID(); 
 	covGen *= 1e-20; // initialize to sigma=1e-10 .. should get overwhelmed by MULS
 	AlgebraicSymMatrix66 covFinal;
 	int chargeGen =  CurrentParticle.charge(); 
-	std::cout<<"Before1"<<std::endl;
+	//std::cout<<"Before1"<<std::endl;
 	//Propagation
 	FreeTrajectoryState initstate = getFromCLHEP(p3gen, r3gen, chargeGen, covGen, &*bField);
 	
@@ -132,16 +134,16 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
 	const SteppingHelixPropagator* ThisshProp = 
 	  dynamic_cast<const SteppingHelixPropagator*>(&*shProp);
-	std::cout<<"Before2"<<std::endl;
+	//std::cout<<"Before2"<<std::endl;
 	laststate = ThisshProp->propagate(startstate, *plane);
 
-	std::cout<<"Before2.5"<<std::endl;
+	//std::cout<<"Before2.5"<<std::endl;
 	FreeTrajectoryState finalstate;
 	laststate.getFreeState(finalstate);
 	
 	CLHEP::Hep3Vector p3Final, r3Final;
 	getFromFTS(finalstate, p3Final, r3Final, chargeGen, covFinal);
-	std::cout<<"Before3"<<std::endl;
+	//std::cout<<"Before3"<<std::endl;
 	//Smearing the position
 
 	Double_t rho = r3Final.perp();
@@ -163,7 +165,7 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
 	Double_t newrho = rho + Rand->Gaus(0,sigmarho);//Add smearing here
 	Double_t newphi = phi + Rand->Gaus(0,sigmaphi);
-	std::cout<<"Before3"<<std::endl;
+	//std::cout<<"Before3"<<std::endl;
 	CLHEP::Hep3Vector SmearedPosition(1,1,1);
 	SmearedPosition.setPerp(newrho);  SmearedPosition.setPhi(newphi);  SmearedPosition.setZ(r3Final.z());
 	//Smearing the direction 
@@ -197,21 +199,21 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	// theCovMatrix[1][3] = 0;//1e-20;
 
 	//Do the transformation to global coordinates on the Cov Matrix
-	// double piover2 = acos(0.);
-	// theRotMatrix[0][0] = cos(SmearedPosition.phi()+piover2);
-	// theRotMatrix[1][1] = cos(SmearedPosition.phi()+piover2);
-	// theRotMatrix[2][2] = cos(SmearedPosition.phi()+piover2);
-	// theRotMatrix[3][3] = cos(SmearedPosition.phi()+piover2);
+	double piover2 = acos(0.);
+	theRotMatrix[0][0] = cos(SmearedPosition.phi()+piover2);
+	theRotMatrix[1][1] = cos(SmearedPosition.phi()+piover2);
+	theRotMatrix[2][2] = cos(SmearedPosition.phi()+piover2);
+	theRotMatrix[3][3] = cos(SmearedPosition.phi()+piover2);
 	
-	// theRotMatrix[0][1] = sin(SmearedPosition.phi()+piover2);
-	// theRotMatrix[1][0] = sin(-(SmearedPosition.phi()+piover2));
+	theRotMatrix[0][1] = -sin(SmearedPosition.phi()+piover2);
+	theRotMatrix[1][0] = sin(SmearedPosition.phi()+piover2);
 
-	// theRotMatrix[2][3] = sin(SmearedPosition.phi()+piover2);
-	// theRotMatrix[3][2] = sin(-(SmearedPosition.phi()+piover2));
+	theRotMatrix[2][3] = -sin(SmearedPosition.phi()+piover2);
+	theRotMatrix[3][2] = sin(SmearedPosition.phi()+piover2);
 
-	// theCovMatrix = SquareMultiplyMatrices(theRotMatrix,theCovMatrix,4);
+	RotateCovMatrix(theRotMatrix,theCovMatrix,4,theGlobalCovMatrix);
 
-	oc->push_back(ME0Segment(Point, Direction,theCovMatrix,0.));    //Maybe we need a 'new' here?
+	oc->push_back(ME0Segment(Point, Direction,theGlobalCovMatrix,0.));    //Maybe we need a 'new' here?
 	//oc->push_back(ME0Segment());    //Maybe we need a 'new' here?
       }
     }
@@ -264,17 +266,27 @@ void ME0SegmentProducer::getFromFTS(const FreeTrajectoryState& fts,
 
 }
 
-// AlgebraicMatrix ME0SegmentProducer::SquareMultiplyMatrices(const AlgebraicMatrix& M, const AlgebraicSymMatrix& N, int size){
-//   AlgebraicMatrix Output(size,size,0);
-//   for (int i=0; i<size;i++){
-//     for (int j=0; j<size;j++){
-//       for (int k=0; k<size;k++){
-// 	Output[i][j] += M[i][k]*N[k][j];
-//       }
-//     }
-//   }
-//   return Output
-// }
+void ME0SegmentProducer::RotateCovMatrix(const AlgebraicMatrix& R, const AlgebraicSymMatrix& M, int size, AlgebraicSymMatrix& Output){
+  //Here we start to do RMR^T
+  //Here we make (RM)
+  AlgebraicMatrix MidPoint(size,size,0);
+  for (int i=0; i<size;i++){
+    for (int j=0; j<size;j++){
+      for (int k=0; k<size;k++){
+	MidPoint[i][j] += R[i][k]*M[k][j];
+      }
+    }
+  }
+  //Here we write to Output (RM)R^T - note that we transpose R via index inversion
+  for (int i=0; i<size;i++){
+    for (int j=0; j<size;j++){
+      for (int k=0; k<size;k++){
+	Output[i][j] += MidPoint[i][k]*R[j][k];
+      }
+    }
+  }
+  
+}
 
 
 

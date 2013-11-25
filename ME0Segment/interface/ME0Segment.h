@@ -2,14 +2,13 @@
 #define ME0RecHit_ME0Segment_h
 
 /** \class ME0Segment
- *  Describes a reconstructed track segment in the 6 layers of a ME0 chamber. 
- *  This is 4-dimensional since it has an origin (x,y) and a direction (x,y)
- *  in the local coordinate system of the chamber.
- *
+ *  Describes a simulated track segment in a z-plane modeling an ME0 chamber.
+ *  It is modeled after CSCSegment, so it is a 4-dimensional object ( origin (x,y) , direction (x,y) )
+ *  Formally it must be defined as a LocalPoint and LocalError but we actually use the global coordinate system.
+ *  
  *  $Date: 2013/04/22 22:41:32 $
- *  \author Matteo Sani
- *  \author Rick Wilkinson
- *  \author Tim Cox
+ *  
+ *  \author David Nash
  */
 
 #include <DataFormats/TrackingRecHit/interface/RecSegment.h>
@@ -66,6 +65,7 @@ public:
  private:
     
     //std::vector<ME0RecHit2D> theME0RecHits;
+    //  CAVEAT: these "Local" paramaters will in fact be filled by global coordinates
     LocalPoint theOrigin;   // in chamber frame - the GeomDet local coordinate system
     LocalVector theLocalDirection; // in chamber frame - the GeomDet local coordinate system
     AlgebraicSymMatrix theCovMatrix; // the covariance matrix
