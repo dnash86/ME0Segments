@@ -20,6 +20,8 @@
 //#include "CLHEP/Matrix/Matrix.h"
 #include "CLHEP/Vector/ThreeVector.h"
 #include "DataFormats/Math/interface/AlgebraicROOTObjects.h"
+#include "TH1.h" 
+#include "TFile.h"
 
 //class ME0SegmentBuilder; 
 
@@ -52,6 +54,12 @@ private:
     int iev; // events through
     //edm::InputTag inputObjectsTag; // input tag labelling rechits for input
     //ME0SegmentBuilder* segmentBuilder_;
+    bool debug_;
+    TFile* HistFile;
+    TH1F *Sigma_R_Total_h; TH1F *Sigma_Phi_Total_h;
+    TH1F *Sigma_R_Segment_h; TH1F *Sigma_Phi_Segment_h;
+    TH1F *Sigma_R_Track_h; TH1F *Sigma_Phi_Track_h;
+
 };
 
 #endif

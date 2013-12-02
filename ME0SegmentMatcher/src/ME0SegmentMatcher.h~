@@ -5,8 +5,8 @@
  * Produces a collection of ME0Segment's in endcap muon ME0s. 
  *
  * $Date: 2010/03/11 23:48:11 $
- * $Revision: 1.7 $
- * \author M. Sani
+ *
+ * \author David Nash
  */
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -20,6 +20,8 @@
 //#include "CLHEP/Matrix/Matrix.h"
 #include "CLHEP/Vector/ThreeVector.h"
 #include "DataFormats/Math/interface/AlgebraicROOTObjects.h"
+#include "TH1.h" 
+#include "TFile.h"
 
 //class ME0SegmentBuilder; 
 
@@ -52,6 +54,11 @@ private:
     int iev; // events through
     //edm::InputTag inputObjectsTag; // input tag labelling rechits for input
     //ME0SegmentBuilder* segmentBuilder_;
+    TFile* HistFile;
+    TH1F *Sigma_R_Total_h; TH1F *Sigma_Phi_Total_h;
+    TH1F *Sigma_R_Segment_h; TH1F *Sigma_Phi_Segment_h;
+    TH1F *Sigma_R_Track_h; TH1F *Sigma_Phi_Track_h;
+
 };
 
 #endif
