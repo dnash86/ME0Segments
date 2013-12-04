@@ -1,9 +1,8 @@
 <lcgdict>
 <selection>
   <class name="std::vector<ME0Segment>"/>
-  <class name="std::vector<ME0Segment*>"/>
   <class name="ME0Segment" ClassVersion="10">
-   <version ClassVersion="10" checksum="3002485899"/>
+   <version ClassVersion="10" checksum="2231713208"/>
   </class>
   <class name="edm::Wrapper<std::vector<ME0Segment> >"/>
 

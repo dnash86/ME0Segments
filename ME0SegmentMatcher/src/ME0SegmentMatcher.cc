@@ -16,6 +16,10 @@
 #include <Geometry/Records/interface/MuonGeometryRecord.h>
 
 #include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>
+#include <ME0Reconstruction/ME0Segment/interface/ME0SegmentCollection.h>
+
+#include <ME0Reconstruction/ME0Segment/interface/ME0Muon.h>
+#include <ME0Reconstruction/ME0Segment/interface/ME0MuonCollection.h>
 
 // #include "CLHEP/Matrix/SymMatrix.h"
 // #include "CLHEP/Matrix/Matrix.h"
@@ -49,7 +53,8 @@ ME0SegmentMatcher::ME0SegmentMatcher(const edm::ParameterSet& pas) : iev(0) {
     //segmentBuilder_ = new ME0SegmentBuilder(pas); // pass on the PS
   //Rand = new TRandom3();
   	// register what this produces
-    //produces<ME0SegmentCollection>();
+  //produces<ME0MuonCollection>();
+  produces<std::vector<reco::ME0Muon> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
 
     //Put what we produce here, obviously not what's listed below
   debug_ = pas.getParameter<bool>("debug");
@@ -120,8 +125,11 @@ void ME0SegmentMatcher::produce(edm::Event& ev, const edm::EventSetup& setup) {
     Handle <TrackCollection > generalTracks;
     ev.getByLabel <TrackCollection> ("generalTracks", generalTracks);
 
+    std::auto_ptr<std::vector<ME0Muon> > oc( new std::vector<ME0Muon> ); 
+
+    int TrackNumber = 0;
     for (std::vector<Track>::const_iterator thisTrack = generalTracks->begin();
-	 thisTrack != generalTracks->end(); ++thisTrack){
+	 thisTrack != generalTracks->end(); ++thisTrack,++TrackNumber){
       //Initializing our plane
       float zSign  = thisTrack->pz()/fabs(thisTrack->pz());
       float zValue = 560. * zSign;
@@ -156,8 +164,9 @@ void ME0SegmentMatcher::produce(edm::Event& ev, const edm::EventSetup& setup) {
     
 
       //Now we compare for each me0 segment:
+      int SegmentNumber = 0;
       for (std::vector<ME0Segment>::const_iterator thisSegment = OurSegments->begin();
-	   thisSegment != OurSegments->end(); ++thisSegment){
+	   thisSegment != OurSegments->end(); ++thisSegment,++SegmentNumber){
       
 	//ME0Segments actually have globally initialized positions and directions, so lets cast them as global points and vectors
 	GlobalPoint thisPosition(thisSegment->localPosition().x(),thisSegment->localPosition().y(),thisSegment->localPosition().z());
@@ -227,10 +236,40 @@ void ME0SegmentMatcher::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	if (R_MatchFound && Phi_MatchFound)
 	  {
 	    //Stuff we do if a match is found
-	    std::cout<<"Found a Match:"<<std::endl;
-	    std::cout<<"Sig_R = "<<sigmarho<<", Sig_Phi = "<<sigmaphi<<std::endl;
-	    std::cout<<"Track = "<<r3FinalReco.x()<<","<<r3FinalReco.y()<<","<<r3FinalReco.z()<<std::endl;
-	    std::cout<<"Hit = "<<thisSegment->localPosition().x()<<","<<thisSegment->localPosition().y()<<","<<thisSegment->localPosition().z()<<std::endl;
+
+	    TrackRef thisTrackRef(generalTracks,TrackNumber);
+	    ME0SegmentRef thisME0SegmentRef(OurSegments,SegmentNumber);
+
+	    oc->push_back(reco::ME0Muon(thisTrackRef,thisME0SegmentRef));    //Maybe we need a 'new' here?
+
+
+	    // std::cout<<"Found a Match:"<<std::endl;
+	    // std::cout<<"Sig_R = "<<sigmarho<<", Sig_Phi = "<<sigmaphi<<std::endl;
+	    // std::cout<<"Track = "<<r3FinalReco.x()<<","<<r3FinalReco.y()<<","<<r3FinalReco.z()<<std::endl;
+	    // std::cout<<"Hit = "<<thisSegment->localPosition().x()<<","<<thisSegment->localPosition().y()<<","<<thisSegment->localPosition().z()<<std::endl;
+
+	    // //track updating part, no clue if this is right yet...  
+	    // //Modeled after http://cmslxr.fnal.gov/lxr/source/Alignment/CommonAlignmentProducer/plugins/GlobalTrackerMuonAlignment.cc#1385
+	    // //------I think this part is declaring and initializing things for our fitter/updator...
+	    // KFUpdator* theUpdator = new KFUpdator();
+	    // Chi2MeasurementEstimator* theEstimator = new Chi2MeasurementEstimator(100000,100000); //Should check how this should be used
+	    // const SteppingHelixPropagator* OurProp = 
+	    //   dynamic_cast<const SteppingHelixPropagator*>(&*shProp);
+	    // theFitter = new KFTrajectoryFitter(*OurProp, 
+	    // 				       *theUpdator, 
+	    // 				       *theEstimator);
+	    // theSmoother = new KFTrajectorySmoother(*OurProp,
+	    // 					   *theUpdator,     
+	    // 					   *theEstimator);
+	    // //------Now I think we should go on to declaring and initializing the things for updating..
+
+	    // // I guess you need a trajectory state on surface?  Will it need to be persistent?  Maybe not..
+	    // //If so, lets hope you can initialize this without a detId...  it should look like (initialTSOS, trackDetId.rawId());
+	    // PTrajectoryStateOnDet  PTraj = 
+	    //   trajectoryStateTransform::persistentState(initialTSOS);
+	    // // We'll need a rechit and direction for the trajectory seed
+	    // const TrajectorySeed seedT(PTraj, recHit, direction);
+	    // trajVec = theFitter->fit(seedT, recHitMu, initialTSOS);
 	  }
 
       }
@@ -240,7 +279,7 @@ void ME0SegmentMatcher::produce(edm::Event& ev, const edm::EventSetup& setup) {
     //segmentBuilder_->build(cscRecHits.product(), *oc); //@@ FILL oc
 
     // put collection in event
-    //ev.put(oc);
+    ev.put(oc);
 }
 
 FreeTrajectoryState

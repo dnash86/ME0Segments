@@ -6,6 +6,15 @@
   </class>
   <class name="edm::Wrapper<std::vector<ME0Segment> >"/>
 
+  <class name="edm::Ref<std::vector<ME0Segment>,ME0Segment,edm::refhelper::FindUsingAdvance<std::vector<ME0Segment>,ME0Segment> >"/>
+
+  <class name="std::vector<reco::ME0Muon>"/>
+  <class name="reco::ME0Muon" ClassVersion="11">
+   <version ClassVersion="11" checksum="1137055742"/>
+  </class>
+  <class name="edm::Wrapper<std::vector<reco::ME0Muon> >"/>
+  
+  <class name="edm::Ref<std::vector<reco::ME0Muon>,reco::ME0Muon,edm::refhelper::FindUsingAdvance<std::vector<reco::ME0Muon>,reco::ME0Muon> >"/>
 </selection>
 
 <exclusion>
