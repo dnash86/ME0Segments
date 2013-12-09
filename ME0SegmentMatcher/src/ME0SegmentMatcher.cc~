@@ -18,6 +18,9 @@
 #include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>
 #include <ME0Reconstruction/ME0Segment/interface/ME0SegmentCollection.h>
 
+#include <ME0Reconstruction/ME0Segment/interface/ME0Muon.h>
+#include <ME0Reconstruction/ME0Segment/interface/ME0MuonCollection.h>
+
 // #include "CLHEP/Matrix/SymMatrix.h"
 // #include "CLHEP/Matrix/Matrix.h"
 // #include "CLHEP/Vector/ThreeVector.h"
@@ -51,7 +54,7 @@ ME0SegmentMatcher::ME0SegmentMatcher(const edm::ParameterSet& pas) : iev(0) {
   //Rand = new TRandom3();
   	// register what this produces
   //produces<ME0MuonCollection>();
-  produces<std::vector<ME0Muon> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
+  produces<std::vector<reco::ME0Muon> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
 
     //Put what we produce here, obviously not what's listed below
   debug_ = pas.getParameter<bool>("debug");
@@ -234,10 +237,10 @@ void ME0SegmentMatcher::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	  {
 	    //Stuff we do if a match is found
 
-	    TrackRef thisTrackRef(*generalTracks,TrackNumber);
-	    ME0SegmentRef thisME0SegmentRef(*OurSegments,SegmentNumber);
+	    TrackRef thisTrackRef(generalTracks,TrackNumber);
+	    ME0SegmentRef thisME0SegmentRef(OurSegments,SegmentNumber);
 
-	    oc->push_back(ME0Muon(thisTrackRef,thisME0SegmentRef));    //Maybe we need a 'new' here?
+	    oc->push_back(reco::ME0Muon(thisTrackRef,thisME0SegmentRef));    //Maybe we need a 'new' here?
 
 
 	    // std::cout<<"Found a Match:"<<std::endl;
