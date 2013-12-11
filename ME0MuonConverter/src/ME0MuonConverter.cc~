@@ -1,0 +1,93 @@
+/** \file ME0MuonConverter.cc
+ *
+ * \author David Nash
+ */
+
+#include <ME0Reconstruction/ME0MuonConverter/src/ME0MuonConverter.h>
+//#include <RecoLocalMuon/ME0Segment/src/ME0SegmentBuilder.h>
+
+#include <FWCore/PluginManager/interface/ModuleDef.h>
+#include <FWCore/Framework/interface/MakerMacros.h>
+
+#include <DataFormats/Common/interface/Handle.h>
+#include <FWCore/Framework/interface/ESHandle.h>
+#include <FWCore/MessageLogger/interface/MessageLogger.h> 
+
+#include <Geometry/Records/interface/MuonGeometryRecord.h>
+
+#include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>
+#include <ME0Reconstruction/ME0Segment/interface/ME0SegmentCollection.h>
+
+#include <ME0Reconstruction/ME0Segment/interface/ME0Muon.h>
+#include <ME0Reconstruction/ME0Segment/interface/ME0MuonCollection.h>
+
+// #include "CLHEP/Matrix/SymMatrix.h"
+// #include "CLHEP/Matrix/Matrix.h"
+// #include "CLHEP/Vector/ThreeVector.h"
+
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
+//#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+
+#include "TLorentzVector.h"
+//#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/TrackReco/interface/Track.h"
+
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
+//#include "TRandom3.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
+
+#include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/Math/interface/deltaPhi.h"
+
+ME0MuonConverter::ME0MuonConverter(const edm::ParameterSet& pas) : iev(0) {
+	
+  produces<std::vector<reco::ME0Muon> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
+
+}
+
+ME0MuonConverter::~ME0MuonConverter() {
+
+  //LogDebug("ME0MuonConverter") << "deleting ME0MuonConverter after " << iev << " events w/csc data.";
+    //delete segmentBuilder_;
+  if (debug_){
+    //std::cout<<"On the destructor now"<<std::endl;
+    HistFile->cd();
+    Sigma_R_Total_h->Write();    Sigma_Phi_Total_h->Write();
+    Sigma_R_Segment_h->Write();    Sigma_Phi_Segment_h->Write();
+    Sigma_R_Track_h->Write();    Sigma_Phi_Track_h->Write();
+    delete HistFile; HistFile = 0;
+  }
+}
+
+void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
+
+    
+    using namespace reco;
+
+    Handle<std::vector<ME0Segment> > OurSegments;
+    ev.getByLabel<std::vector<ME0Segment> >("me0SegmentProducer", OurSegments);
+
+    Handle <TrackCollection > generalTracks;
+    ev.getByLabel <TrackCollection> ("generalTracks", generalTracks);
+
+    std::auto_ptr<std::vector<ME0Muon> > oc( new std::vector<ME0Muon> ); 
+
+    int TrackNumber = 0;
+    for (std::vector<Track>::const_iterator thisTrack = generalTracks->begin();
+	 thisTrack != generalTracks->end(); ++thisTrack,++TrackNumber){
+
+
+    }
+    ev.put(oc);
+}
+
+
+ DEFINE_FWK_MODULE(ME0MuonConverter);
