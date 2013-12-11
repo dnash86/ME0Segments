@@ -239,7 +239,7 @@ void ME0SegmentMatcher::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
 	    TrackRef thisTrackRef(generalTracks,TrackNumber);
 	    ME0SegmentRef thisME0SegmentRef(OurSegments,SegmentNumber);
-	    std::cout<<thisTrack->eta()<<std::endl;
+	    std::cout<<thisTrack->pt()<<std::endl;
 	    oc->push_back(reco::ME0Muon(thisTrackRef,thisME0SegmentRef));    //Maybe we need a 'new' here?
 
 

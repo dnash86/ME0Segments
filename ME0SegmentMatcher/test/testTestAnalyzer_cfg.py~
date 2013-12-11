@@ -1,6 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("PROPAGATORTEST")
+process = cms.Process("EmptyTest")
+
 
 process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
 
@@ -11,6 +12,7 @@ process.load("TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorAl
 process.load("TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorOpposite_cfi")
 
 process.load("TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorAny_cfi")
+
 
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
@@ -25,48 +27,10 @@ process.source = cms.Source("PoolSource",
 
 )
 
-process.propAna = cms.EDAnalyzer("SteppingHelixPropagatorAnalyzer",
-    ntupleTkHits = cms.bool(False),
-    startFromPrevHit = cms.bool(False),
-    DoDavidsVersion = cms.bool(True),
-    UseOuter = cms.bool(False),
-    radX0CorrectionMode = cms.bool(False),
-    trkIndOffset = cms.int32(0),
-    #NtFile = cms.string('5GeV.root'),
-    NtFile = cms.string('PropagatorTree_PUInner.root'),
-    testPCAPropagation = cms.bool(False),
-    debug = cms.bool(False),
-    g4SimName = cms.string('g4SimHits'),
-    simTracksTag = cms.InputTag('g4SimHits'),
-    simVertexesTag = cms.InputTag('g4SimHits')
+process.Test = cms.EDAnalyzer("TestAnalyzer"
 )
 
-process.p = cms.Path(process.propAna)
+process.p = cms.Path(process.Test)
 process.PoolSource.fileNames = [
-    #'/store/relval/CMSSW_6_0_0-START60_V4/RelValSingleMuPt10/GEN-SIM/v1/0000/6C269129-E1F2-E111-9FC6-001A92971BC8.root',
-    #'/store/relval/CMSSW_6_0_0-START60_V4/RelValSingleMuPt10/GEN-SIM/v1/0000/5404C41C-E1F2-E111-9731-0026189438AD.root',
-    #'/store/relval/CMSSW_6_0_0-START60_V4/RelValSingleMuPt10/GEN-SIM/v1/0000/36D70436-E1F2-E111-BB26-001A92810AA2.root',
-    #'/store/relval/CMSSW_6_2_0/RelValSingleMuPt10/GEN-SIM-RECO/PRE_ST62_V8-v3/00000/FEB7D35C-5CEC-E211-80AA-003048FEB8EE.root'
-    #'/store/relval//CMSSW_6_2_0/RelValSingleMuPt10/GEN-SIM-DIGI-RECO/PRE_ST62_V8_FastSim-v3/00000/465AA4C7-45EC-E211-84AB-003048F1B974.root'
-    #'/store/relval//CMSSW_6_2_0/RelValSingleMuPt10/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/0280B12B-48EC-E211-8DAE-003048FEB956.root'
-    #'file:MyFirstFamosFile_3.root'
-    #'file:/afs/cern.ch/work/d/dnash/TestHelix/CMSSW_6_1_2_SLHC8/src/TrackPropagation/SteppingHelixPropagator/test/MyFirstFamosFile_2.root'
-    #'file:/afs/cern.ch/work/d/dnash/TestHelix/CMSSW_6_2_0/src/TrackPropagation/SteppingHelixPropagator/test/MyFirstFamosFile_3.root'
-    #'file:genMuons_eta1p3To2p4_pt10.root'
-    #'file:genMuons_eta2p4To4p0.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/output5GeV.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/ParOutput20GeV.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/ParOutput20GeV_2BE.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/ParOutput20GeV_Verify.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/ParOutput20GeV_onemuon.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/ParOutput20GeV_phase1.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryTwo/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/OutputTry.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryThree/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/OutputTry.root'
-    #'file:/afs/cern.ch/user/a/anlevin/public/forDavid07Oct2013/OutputTry.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryFour/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/Smallcheck.root'
-    'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryFour/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/PU20GeV.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryFour/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/PU20GeV_Wider.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryFour/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/ExperimentalPU20GeV_3.root'
-    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryFour/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/Smallcheck.root'
+    'file:FirstTest.root'
 ]
-
