@@ -40,53 +40,67 @@
 
 #include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
 //#include "TRandom3.h"
-#include "DataFormats/GeometrySurface/interface/Plane.h"
-#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
-#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
+// #include "DataFormats/GeometrySurface/interface/Plane.h"
+// #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+// #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
 
-#include "DataFormats/Math/interface/deltaR.h"
-#include "DataFormats/Math/interface/deltaPhi.h"
+// #include "DataFormats/Math/interface/deltaR.h"
+// #include "DataFormats/Math/interface/deltaPhi.h"
+
+
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
+
+
+#include "FWCore/Framework/interface/EDProducer.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+
 
 ME0MuonConverter::ME0MuonConverter(const edm::ParameterSet& pas) : iev(0) {
 	
-  produces<std::vector<reco::ME0Muon> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
+  produces<std::vector<reco::RecoChargedCandidate> >();  
 
 }
 
 ME0MuonConverter::~ME0MuonConverter() {
 
-  //LogDebug("ME0MuonConverter") << "deleting ME0MuonConverter after " << iev << " events w/csc data.";
-    //delete segmentBuilder_;
-  if (debug_){
-    //std::cout<<"On the destructor now"<<std::endl;
-    HistFile->cd();
-    Sigma_R_Total_h->Write();    Sigma_Phi_Total_h->Write();
-    Sigma_R_Segment_h->Write();    Sigma_Phi_Segment_h->Write();
-    Sigma_R_Track_h->Write();    Sigma_Phi_Track_h->Write();
-    delete HistFile; HistFile = 0;
-  }
 }
 
 void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
+  using namespace edm;
+
+  using namespace reco;
+
+  Handle <std::vector<ME0Muon> > OurMuons;
+  ev.getByLabel <std::vector<ME0Muon> > ("me0SegmentMatcher", OurMuons);
+  
+  //std::auto_ptr<std::vector<RecoChargedCandidate> > oc( new std::vector<RecoChargedCandidate> ); 
+
+
+  //std::auto_ptr<RecoChargedCandidateCollection> oc( new RecoChargedCandidateCollection());
+
+  for (std::vector<ME0Muon>::const_iterator thisMuon = OurMuons->begin();
+       thisMuon != OurMuons->end(); ++thisMuon){
+    std::cout<<"On a muon:"<<std::endl;
+    std::cout<<thisMuon->pt()<<std::endl;
+
+
+    TrackRef tkRef = thisMuon->innerTrack();
     
-    using namespace reco;
+    Particle::Charge q = tkRef->charge();
+    Particle::LorentzVector p4(tkRef->px(), tkRef->py(), tkRef->pz(), tkRef->p());
+    Particle::Point vtx(tkRef->vx(),tkRef->vy(), tkRef->vz());
 
-    Handle<std::vector<ME0Segment> > OurSegments;
-    ev.getByLabel<std::vector<ME0Segment> >("me0SegmentProducer", OurSegments);
+    int pid = 13;
+    if(abs(q)==1) pid = q < 0 ? 13 : -13;
+    reco::RecoChargedCandidate cand(q, p4, vtx, pid);
+    cand.setTrack(thisMuon->innerTrack());
 
-    Handle <TrackCollection > generalTracks;
-    ev.getByLabel <TrackCollection> ("generalTracks", generalTracks);
-
-    std::auto_ptr<std::vector<ME0Muon> > oc( new std::vector<ME0Muon> ); 
-
-    int TrackNumber = 0;
-    for (std::vector<Track>::const_iterator thisTrack = generalTracks->begin();
-	 thisTrack != generalTracks->end(); ++thisTrack,++TrackNumber){
-
-
-    }
-    ev.put(oc);
+    //oc->push_back(cand);
+  }
+    
+  //ev.put(oc);
 }
 
 

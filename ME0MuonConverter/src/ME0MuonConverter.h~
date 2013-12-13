@@ -25,9 +25,6 @@
 
 //class ME0SegmentBuilder; 
 
-class FreeTrajectoryState;
-class MagneticField;
-//class TRandom3;
 class ME0MuonConverter : public edm::EDProducer {
 public:
     /// Constructor

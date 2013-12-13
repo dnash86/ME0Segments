@@ -23,6 +23,15 @@
 #include "TH1.h" 
 #include "TFile.h"
 
+
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
+
+
+#include "FWCore/Framework/interface/EDProducer.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+
+
 //class ME0SegmentBuilder; 
 
 class ME0MuonConverter : public edm::EDProducer {

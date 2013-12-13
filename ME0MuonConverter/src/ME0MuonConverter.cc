@@ -40,16 +40,24 @@
 
 #include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
 //#include "TRandom3.h"
-#include "DataFormats/GeometrySurface/interface/Plane.h"
-#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
-#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
+// #include "DataFormats/GeometrySurface/interface/Plane.h"
+// #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+// #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
 
-#include "DataFormats/Math/interface/deltaR.h"
-#include "DataFormats/Math/interface/deltaPhi.h"
+// #include "DataFormats/Math/interface/deltaR.h"
+// #include "DataFormats/Math/interface/deltaPhi.h"
+
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
+
+
+//#include "FWCore/Framework/interface/EDProducer.h"
+//#include "FWCore/Utilities/interface/InputTag.h"
+
 
 ME0MuonConverter::ME0MuonConverter(const edm::ParameterSet& pas) : iev(0) {
 	
-  produces<std::vector<reco::ME0Muon> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
+  produces<std::vector<reco::RecoChargedCandidate> >();  
 
 }
 
@@ -68,13 +76,30 @@ void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
   
   //std::auto_ptr<std::vector<RecoChargedCandidate> > oc( new std::vector<RecoChargedCandidate> ); 
 
+
+  std::auto_ptr<RecoChargedCandidateCollection> oc( new RecoChargedCandidateCollection());
+
   for (std::vector<ME0Muon>::const_iterator thisMuon = OurMuons->begin();
        thisMuon != OurMuons->end(); ++thisMuon){
     std::cout<<"On a muon:"<<std::endl;
     std::cout<<thisMuon->pt()<<std::endl;
+
+
+    TrackRef tkRef = thisMuon->innerTrack();
+    
+    Particle::Charge q = tkRef->charge();
+    Particle::LorentzVector p4(tkRef->px(), tkRef->py(), tkRef->pz(), tkRef->p());
+    Particle::Point vtx(tkRef->vx(),tkRef->vy(), tkRef->vz());
+
+    int pid = 13;
+    if(abs(q)==1) pid = q < 0 ? 13 : -13;
+    reco::RecoChargedCandidate cand(q, p4, vtx, pid);
+    cand.setTrack(thisMuon->innerTrack());
+
+    oc->push_back(cand);
   }
     
-  //ev.put(oc);
+  ev.put(oc);
 }
 
 
