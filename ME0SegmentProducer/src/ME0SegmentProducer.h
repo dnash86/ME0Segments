@@ -14,12 +14,32 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 
-//#include "CLHEP/Matrix/SymMatrix.h"
-//#include "CLHEP/Matrix/Matrix.h"
-#include "CLHEP/Vector/ThreeVector.h"
 #include "DataFormats/Math/interface/AlgebraicROOTObjects.h"
-#include "DataFormats/CLHEP/interface/AlgebraicObjects.h"
+
+//============================
+
+
+#include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>
+
+#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
+//#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+
+#include "TLorentzVector.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
+#include "TRandom3.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
+
+#include <math.h>
+
+//==========================
 
 //class ME0SegmentBuilder; 
 
@@ -36,16 +56,16 @@ public:
     /// Produce the ME0Segment collection
     virtual void produce(edm::Event&, const edm::EventSetup&);
 
-    FreeTrajectoryState getFromCLHEP(const CLHEP::Hep3Vector& , const CLHEP::Hep3Vector& , 
+    FreeTrajectoryState getFTS(const GlobalVector& , const GlobalVector& , 
 				   int , const AlgebraicSymMatrix66& ,
 				   const MagneticField* );
 
-    FreeTrajectoryState getFromCLHEP(const CLHEP::Hep3Vector& , const CLHEP::Hep3Vector& , 
+    FreeTrajectoryState getFTS(const GlobalVector& , const GlobalVector& , 
 				   int , const AlgebraicSymMatrix55& ,
 				   const MagneticField* );
 
     void getFromFTS(const FreeTrajectoryState& ,
-		  CLHEP::Hep3Vector& , CLHEP::Hep3Vector& , 
+		  GlobalVector& , GlobalVector& , 
 		  int& , AlgebraicSymMatrix66& );
 
     void RotateCovMatrix(const AlgebraicMatrix&, const AlgebraicSymMatrix&,int, AlgebraicSymMatrix&);
@@ -56,6 +76,7 @@ private:
     int iev; // events through
     //edm::InputTag inputObjectsTag; // input tag labelling rechits for input
     //ME0SegmentBuilder* segmentBuilder_;
+    int NumSegs;
 };
 
 #endif

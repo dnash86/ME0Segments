@@ -1,5 +1,6 @@
 /** \file ME0SegmentProducer.cc
  *
+ * \author David Nash
  */
 
 #include <ME0Reconstruction/ME0SegmentProducer/src/ME0SegmentProducer.h>
@@ -14,28 +15,6 @@
 
 #include <Geometry/Records/interface/MuonGeometryRecord.h>
 
-#include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>
-
-// #include "CLHEP/Matrix/SymMatrix.h"
-// #include "CLHEP/Matrix/Matrix.h"
-// #include "CLHEP/Vector/ThreeVector.h"
-
-#include "DataFormats/GeometryVector/interface/GlobalVector.h"
-#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
-#include "TrackingTools/GeomPropagators/interface/Propagator.h"
-#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
-#include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
-//#include "DataFormats/BeamSpot/interface/BeamSpot.h"
-
-#include "TLorentzVector.h"
-#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
-#include "TRandom3.h"
-#include "DataFormats/GeometrySurface/interface/Plane.h"
-#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
-#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
-
-#include <math.h>
 
 ME0SegmentProducer::ME0SegmentProducer(const edm::ParameterSet& pas) : iev(0) {
 	
@@ -45,12 +24,14 @@ ME0SegmentProducer::ME0SegmentProducer(const edm::ParameterSet& pas) : iev(0) {
   	// register what this produces
     //produces<ME0SegmentCollection>();
     produces<std::vector<ME0Segment> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
+    NumSegs = 0;
 }
 
 ME0SegmentProducer::~ME0SegmentProducer() {
 
   //LogDebug("ME0SegmentProducer") << "deleting ME0SegmentProducer after " << iev << " events w/csc data.";
     //delete segmentBuilder_;
+  std::cout<<NumSegs<<" segments"<<std::endl;
 }
 
 void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
@@ -115,8 +96,8 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 			      ,CurrentParticle.eta()
 			      ,CurrentParticle.phi()
 			      ,CurrentParticle.mass());
-	CLHEP::Hep3Vector p3gen(Momentum.Px(), Momentum.Py(), Momentum.Pz());
-	CLHEP::Hep3Vector r3gen = CLHEP::Hep3Vector(CurrentParticle.vertex().x()
+	GlobalVector p3gen(Momentum.Px(), Momentum.Py(), Momentum.Pz());
+	GlobalVector r3gen = GlobalVector(CurrentParticle.vertex().x()
 						    ,CurrentParticle.vertex().y()
 						    ,CurrentParticle.vertex().z());
 	//std::cout<<"Before0"<<std::endl;
@@ -126,7 +107,7 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	int chargeGen =  CurrentParticle.charge(); 
 	//std::cout<<"Before1"<<std::endl;
 	//Propagation
-	FreeTrajectoryState initstate = getFromCLHEP(p3gen, r3gen, chargeGen, covGen, &*bField);
+	FreeTrajectoryState initstate = getFTS(p3gen, r3gen, chargeGen, covGen, &*bField);
 	
 	SteppingHelixStateInfo startstate(initstate);
 	SteppingHelixStateInfo laststate;
@@ -140,7 +121,7 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	FreeTrajectoryState finalstate;
 	laststate.getFreeState(finalstate);
 	
-	CLHEP::Hep3Vector p3Final, r3Final;
+	GlobalVector p3Final, r3Final;
 	getFromFTS(finalstate, p3Final, r3Final, chargeGen, covFinal);
 	//std::cout<<"Before3"<<std::endl;
 	//Smearing the position
@@ -165,8 +146,13 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	Double_t newrho = rho + Rand->Gaus(0,sigmarho);//Add smearing here
 	Double_t newphi = phi + Rand->Gaus(0,sigmaphi);
 	//std::cout<<"Before3"<<std::endl;
-	CLHEP::Hep3Vector SmearedPosition(1,1,1);
-	SmearedPosition.setPerp(newrho);  SmearedPosition.setPhi(newphi);  SmearedPosition.setZ(r3Final.z());
+	//GlobalVector SmearedPosition(1,1,1);
+	// std::cout<<"Pre smear: "<<r3Final.x()<<", "<<r3Final.y()<<", "<<r3Final.z()<<std::endl;
+	// std::cout<<"First: "<<newrho*cos(newphi)<<", "<<newrho*sin(newphi)<<", "<<r3Final.z()<<std::endl;
+	GlobalVector SmearedPosition(newrho*cos(newphi),newrho*sin(newphi),r3Final.z());
+	//std::cout<<"Then: "<<SmearedPosition.x()<<", "<<SmearedPosition.y()<<", "<<SmearedPosition.z()<<std::endl;
+	//SmearedPosition.setPerp(newrho);  SmearedPosition.SetPhi(newphi);  SmearedPosition.Setz(r3Final.z());
+	//SmearedPosition.set(1,1,1);
 	//Smearing the direction 
 	
 	Double_t sigma_px = covFinal(3,3);
@@ -177,7 +163,7 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	Double_t new_py = p3Final.y() + Rand->Gaus(0,sigma_py);
 	Double_t new_pz = p3Final.z() + Rand->Gaus(0,sigma_pz);
 
-	CLHEP::Hep3Vector SmearedDirection(new_px,new_py,new_pz);
+	GlobalVector SmearedDirection(new_px,new_py,new_pz);
 
 	//Filling the ME0Segment
 
@@ -211,8 +197,9 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	theRotMatrix[3][2] = sin(SmearedPosition.phi()+piover2);
 
 	RotateCovMatrix(theRotMatrix,theCovMatrix,4,theGlobalCovMatrix);
-
+	if (abs(Point.eta() < 2.4) || abs(Point.eta() > 4.0)) continue; //Currently we only save segments that propagate to our defined disk
 	oc->push_back(ME0Segment(Point, Direction,theGlobalCovMatrix,0.));    //Maybe we need a 'new' here?
+	NumSegs++;
 	//oc->push_back(ME0Segment());    //Maybe we need a 'new' here?
       }
     }
@@ -224,9 +211,9 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 }
 
 FreeTrajectoryState
-ME0SegmentProducer::getFromCLHEP(const CLHEP::Hep3Vector& p3, const CLHEP::Hep3Vector& r3, 
-					      int charge, const AlgebraicSymMatrix55& cov,
-					      const MagneticField* field){
+ME0SegmentProducer::getFTS(const GlobalVector& p3, const GlobalVector& r3, 
+			   int charge, const AlgebraicSymMatrix55& cov,
+			   const MagneticField* field){
 
   GlobalVector p3GV(p3.x(), p3.y(), p3.z());
   GlobalPoint r3GP(r3.x(), r3.y(), r3.z());
@@ -238,9 +225,9 @@ ME0SegmentProducer::getFromCLHEP(const CLHEP::Hep3Vector& p3, const CLHEP::Hep3V
 }
 
 FreeTrajectoryState
-ME0SegmentProducer::getFromCLHEP(const CLHEP::Hep3Vector& p3, const CLHEP::Hep3Vector& r3, 
-					      int charge, const AlgebraicSymMatrix66& cov,
-					      const MagneticField* field){
+ME0SegmentProducer::getFTS(const GlobalVector& p3, const GlobalVector& r3, 
+			   int charge, const AlgebraicSymMatrix66& cov,
+			   const MagneticField* field){
 
   GlobalVector p3GV(p3.x(), p3.y(), p3.z());
   GlobalPoint r3GP(r3.x(), r3.y(), r3.z());
@@ -252,13 +239,17 @@ ME0SegmentProducer::getFromCLHEP(const CLHEP::Hep3Vector& p3, const CLHEP::Hep3V
 }
 
 void ME0SegmentProducer::getFromFTS(const FreeTrajectoryState& fts,
-				    CLHEP::Hep3Vector& p3, CLHEP::Hep3Vector& r3, 
+				    GlobalVector& p3, GlobalVector& r3, 
 				    int& charge, AlgebraicSymMatrix66& cov){
   GlobalVector p3GV = fts.momentum();
   GlobalPoint r3GP = fts.position();
 
-  p3.set(p3GV.x(), p3GV.y(), p3GV.z());
-  r3.set(r3GP.x(), r3GP.y(), r3GP.z());
+  GlobalVector p3T(p3GV.x(), p3GV.y(), p3GV.z());
+  GlobalVector r3T(r3GP.x(), r3GP.y(), r3GP.z());
+  p3 = p3T;
+  r3 = p3T;
+  // p3.set(p3GV.x(), p3GV.y(), p3GV.z());
+  // r3.set(r3GP.x(), r3GP.y(), r3GP.z());
   
   charge = fts.charge();
   cov = fts.hasError() ? fts.cartesianError().matrix() : AlgebraicSymMatrix66();

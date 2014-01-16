@@ -21,9 +21,6 @@
 #include <ME0Reconstruction/ME0Segment/interface/ME0Muon.h>
 #include <ME0Reconstruction/ME0Segment/interface/ME0MuonCollection.h>
 
-// #include "CLHEP/Matrix/SymMatrix.h"
-// #include "CLHEP/Matrix/Matrix.h"
-// #include "CLHEP/Vector/ThreeVector.h"
 
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
@@ -58,11 +55,12 @@
 ME0MuonConverter::ME0MuonConverter(const edm::ParameterSet& pas) : iev(0) {
 	
   produces<std::vector<reco::RecoChargedCandidate> >();  
-
+  
+  NumRecoChargedCandidates = 0;
 }
 
 ME0MuonConverter::~ME0MuonConverter() {
-
+  std::cout<<NumRecoChargedCandidates<<" candidates saved"<<std::endl;
 }
 
 void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
@@ -81,8 +79,7 @@ void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
   for (std::vector<ME0Muon>::const_iterator thisMuon = OurMuons->begin();
        thisMuon != OurMuons->end(); ++thisMuon){
-    std::cout<<"On a muon:"<<std::endl;
-    std::cout<<thisMuon->pt()<<std::endl;
+    NumRecoChargedCandidates++;
 
 
     TrackRef tkRef = thisMuon->innerTrack();

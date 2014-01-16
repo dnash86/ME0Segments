@@ -18,7 +18,7 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:upgradePLS3', '')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(20)
+    input = cms.untracked.int32(-1)
 )
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring('file:///somewhere/simevent.root') ##/somewhere/simevent.root" }
@@ -38,7 +38,9 @@ process.p = cms.Path(process.me0SegmentProducer+
                      process.me0SegmentMatcher+
                      process.me0MuonConverter)
 process.PoolSource.fileNames = [
-    'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryFour/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/20GeV.root'
+    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/TryFour/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/20GeV.root'
+    #'file:/afs/cern.ch/work/d/dnash/PixelProduction/ReCheckout/CMSSW_6_1_2_SLHC8/src/FastSimulation/Configuration/test/Zmumu.root'
+    'file:/tmp/dnash/Zmumu.root'
 ]
 
 

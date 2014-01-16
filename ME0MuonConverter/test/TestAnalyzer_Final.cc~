@@ -19,7 +19,7 @@
 
 // #include "CLHEP/Matrix/SymMatrix.h"
 // #include "CLHEP/Matrix/Matrix.h"
-// #include "CLHEP/Vector/ThreeVector.h"
+ #include "CLHEP/Vector/ThreeVector.h"
 
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
@@ -47,6 +47,9 @@
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 
+#include "TMath.h"
+#include "TLorentzVector.h"
+
 
 class TestAnalyzer_Final : public edm::EDAnalyzer {
 public:
@@ -60,15 +63,30 @@ public:
 
   //protected:
   
-  //private:
+  private:
+  TFile* histoFile;
+  TH1F *Candidate_Eta;  TH1F *Mass_h;  int NumCands; int NumSegs;
+  TH1F *Segment_Eta;  TH1F *Track_Eta;  TH1F *Muon_Eta; 
 //Removing this
 };
 
-TestAnalyzer_Final::TestAnalyzer_Final(const edm::ParameterSet& iConfig) {}
+TestAnalyzer_Final::TestAnalyzer_Final(const edm::ParameterSet& iConfig) 
+{
+  histoFile = new TFile(iConfig.getParameter<std::string>("HistoFile").c_str(), "recreate");
+  NumCands = 0;
+  NumSegs = 0;
+}
 
 
 
-void TestAnalyzer_Final::beginJob(){}
+void TestAnalyzer_Final::beginJob()
+{
+  Candidate_Eta = new TH1F("Candidate_Eta"      , "Candidate #eta"   , 200, -4.5, 4.5 );
+  Track_Eta = new TH1F("Track_Eta"      , "Track #eta"   , 200, -4.5, 4.5 );
+  Segment_Eta = new TH1F("Segment_Eta"      , "Segment #eta"   , 200, -4.5, 4.5 );
+  Muon_Eta = new TH1F("Muon_Eta"      , "Muon #eta"   , 200, -4.5, 4.5 );
+  Mass_h = new TH1F("Mass_h"      , "Mass"   , 100, 0., 200 );
+}
 
 
 TestAnalyzer_Final::~TestAnalyzer_Final(){}
@@ -94,19 +112,72 @@ TestAnalyzer_Final::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
   Handle <std::vector<RecoChargedCandidate> > OurCandidates;
   iEvent.getByLabel <std::vector<RecoChargedCandidate> > ("me0MuonConverter", OurCandidates);
-  
+
+
+  Handle<std::vector<ME0Segment> > OurSegments;
+  iEvent.getByLabel<std::vector<ME0Segment> >("me0SegmentProducer", OurSegments);
+
   //unsigned int recosize=OurCandidates->size();
+  for (std::vector<ME0Segment>::const_iterator thisSegment = OurSegments->begin();
+       thisSegment != OurSegments->end();++thisSegment){
+    // double theta = atan(thisSegment->localDirection().y()/ thisSegment->localDirection().x());
+    // double tempeta = -log(tan (theta/2.));
+    LocalVector TempVect(thisSegment->localDirection().x(),thisSegment->localDirection().y(),thisSegment->localDirection().z());
+    Segment_Eta->Fill(TempVect.eta());
+    NumSegs++;
+  }
 
+  Handle <TrackCollection > generalTracks;
+  iEvent.getByLabel <TrackCollection> ("generalTracks", generalTracks);
+  
+  for (std::vector<Track>::const_iterator thisTrack = generalTracks->begin();
+       thisTrack != generalTracks->end();++thisTrack){
+    Track_Eta->Fill(thisTrack->eta());
+    std::cout<<thisTrack->eta()<<std::endl;
+  }
+
+  Handle <std::vector<ME0Muon> > OurMuons;
+  iEvent.getByLabel <std::vector<ME0Muon> > ("me0SegmentMatcher", OurMuons);
+
+  for (std::vector<ME0Muon>::const_iterator thisMuon = OurMuons->begin();
+       thisMuon != OurMuons->end(); ++thisMuon){
+    TrackRef tkRef = thisMuon->innerTrack();
+    LocalVector TempVect(tkRef->px(),tkRef->py(),tkRef->pz());
+    Muon_Eta->Fill(TempVect.eta());
+  }
   //std::cout<<recosize<<std::endl;
-
   for (std::vector<RecoChargedCandidate>::const_iterator thisCandidate = OurCandidates->begin();
        thisCandidate != OurCandidates->end(); ++thisCandidate){
-    //std::cout<<thisCandidate->pt()<<std::endl;
-    std::cout<<"On a muon"<<std::endl;
+    NumCands++;
+    TLorentzVector CandidateVector;
+    CandidateVector.SetPtEtaPhiM(thisCandidate->pt(),thisCandidate->eta(),thisCandidate->phi(),0);
+    //std::cout<<"On a muon"<<std::endl;
+    //std::cout<<thisCandidate->eta()<<std::endl;
+    Candidate_Eta->Fill(thisCandidate->eta());
   }
+
+  if (OurCandidates->size() == 2){
+    TLorentzVector CandidateVector1,CandidateVector2;
+    CandidateVector1.SetPtEtaPhiM((*OurCandidates)[0].pt(),(*OurCandidates)[0].eta(),(*OurCandidates)[0].phi(),0);
+    CandidateVector2.SetPtEtaPhiM((*OurCandidates)[1].pt(),(*OurCandidates)[1].eta(),(*OurCandidates)[1].phi(),0);
+    Double_t Mass = (CandidateVector1+CandidateVector2).M();
+    Mass_h->Fill(Mass);
+  }
+  
   
 }
 
-void TestAnalyzer_Final::endJob() {}
+void TestAnalyzer_Final::endJob() 
+{
+  histoFile->cd();
+  Candidate_Eta->Write();
+  Track_Eta->Write();
+  Segment_Eta->Write();
+  Muon_Eta->Write();
+  Mass_h->Write();
+  std::cout<<NumCands<<std::endl;
+  std::cout<<NumSegs<<std::endl;
+  delete histoFile; histoFile = 0;
+}
 
 DEFINE_FWK_MODULE(TestAnalyzer_Final);

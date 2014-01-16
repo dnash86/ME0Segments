@@ -16,6 +16,7 @@
 <use   name="TrackingTools/AnalyticalJacobians"/>
 <use   name="MagneticField/Engine"/>
 <use   name="MagneticField/VolumeBasedEngine"/>
+<use   name="DataFormats/Candidate"/>
 <use   name="MagneticField/VolumeGeometry"/>
 <use   name="TrackingTools/GeomPropagators"/>
 <library   file="TestAnalyzer_Final.cc" name="TestAnalyzer_Final">

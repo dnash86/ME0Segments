@@ -16,9 +16,6 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 
 
-//#include "CLHEP/Matrix/SymMatrix.h"
-//#include "CLHEP/Matrix/Matrix.h"
-#include "CLHEP/Vector/ThreeVector.h"
 #include "DataFormats/Math/interface/AlgebraicROOTObjects.h"
 #include "TH1.h" 
 #include "TFile.h"
@@ -48,6 +45,7 @@ public:
 private:
 
     int iev; // events through
+    int NumRecoChargedCandidates;
 
 };
 

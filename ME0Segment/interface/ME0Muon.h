@@ -34,6 +34,8 @@ namespace reco {
     /// set reference to our new ME0Segment type
     virtual void setME0Segment( const ME0SegmentRef & s ) { me0Segment_ = s; }
 
+    virtual ME0SegmentRef me0segment() const { return me0Segment_; }
+
     /// a bunch of useful accessors
     int charge() const { return innerTrack_.get()->charge(); }
     /// polar angle  

@@ -27,7 +27,9 @@ process.source = cms.Source("PoolSource",
 
 )
 
-process.Test = cms.EDAnalyzer("TestAnalyzer_Final"
+process.Test = cms.EDAnalyzer("TestAnalyzer_Final",
+                              HistoFile = cms.string('OutputTestHistos.root'),
+                              
 )
 
 process.p = cms.Path(process.Test)

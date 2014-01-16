@@ -21,9 +21,6 @@
 #include <ME0Reconstruction/ME0Segment/interface/ME0Muon.h>
 #include <ME0Reconstruction/ME0Segment/interface/ME0MuonCollection.h>
 
-// #include "CLHEP/Matrix/SymMatrix.h"
-// #include "CLHEP/Matrix/Matrix.h"
-// #include "CLHEP/Vector/ThreeVector.h"
 
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
@@ -47,23 +44,23 @@
 // #include "DataFormats/Math/interface/deltaR.h"
 // #include "DataFormats/Math/interface/deltaPhi.h"
 
-
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 
 
-#include "FWCore/Framework/interface/EDProducer.h"
-#include "FWCore/Utilities/interface/InputTag.h"
+//#include "FWCore/Framework/interface/EDProducer.h"
+//#include "FWCore/Utilities/interface/InputTag.h"
 
 
 ME0MuonConverter::ME0MuonConverter(const edm::ParameterSet& pas) : iev(0) {
 	
   produces<std::vector<reco::RecoChargedCandidate> >();  
-
+  
+  NumRecoChargedCandidates = 0;
 }
 
 ME0MuonConverter::~ME0MuonConverter() {
-
+  std::cout<<NumRecoChargedCandidates<<" candidates saved"<<std::endl;
 }
 
 void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
@@ -78,12 +75,13 @@ void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
   //std::auto_ptr<std::vector<RecoChargedCandidate> > oc( new std::vector<RecoChargedCandidate> ); 
 
 
-  //std::auto_ptr<RecoChargedCandidateCollection> oc( new RecoChargedCandidateCollection());
+  std::auto_ptr<RecoChargedCandidateCollection> oc( new RecoChargedCandidateCollection());
 
   for (std::vector<ME0Muon>::const_iterator thisMuon = OurMuons->begin();
        thisMuon != OurMuons->end(); ++thisMuon){
     std::cout<<"On a muon:"<<std::endl;
     std::cout<<thisMuon->pt()<<std::endl;
+    NumRecoChargedCandidates++;
 
 
     TrackRef tkRef = thisMuon->innerTrack();
@@ -97,10 +95,10 @@ void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
     reco::RecoChargedCandidate cand(q, p4, vtx, pid);
     cand.setTrack(thisMuon->innerTrack());
 
-    //oc->push_back(cand);
+    oc->push_back(cand);
   }
     
-  //ev.put(oc);
+  ev.put(oc);
 }
 
 
