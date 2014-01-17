@@ -50,6 +50,10 @@
 #include "TMath.h"
 #include "TLorentzVector.h"
 
+#include "TH1.h" 
+#include "TFile.h"
+#include <TProfile.h>
+
 
 class TestAnalyzer_Final : public edm::EDAnalyzer {
 public:

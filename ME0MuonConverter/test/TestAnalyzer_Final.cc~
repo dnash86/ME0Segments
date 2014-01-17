@@ -67,6 +67,7 @@ public:
   TFile* histoFile;
   TH1F *Candidate_Eta;  TH1F *Mass_h;  int NumCands; int NumSegs;
   TH1F *Segment_Eta;  TH1F *Track_Eta;  TH1F *Muon_Eta; 
+  int TrackCount;
 //Removing this
 };
 
@@ -75,6 +76,7 @@ TestAnalyzer_Final::TestAnalyzer_Final(const edm::ParameterSet& iConfig)
   histoFile = new TFile(iConfig.getParameter<std::string>("HistoFile").c_str(), "recreate");
   NumCands = 0;
   NumSegs = 0;
+  TrackCount = 0;
 }
 
 
@@ -133,6 +135,7 @@ TestAnalyzer_Final::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   for (std::vector<Track>::const_iterator thisTrack = generalTracks->begin();
        thisTrack != generalTracks->end();++thisTrack){
     Track_Eta->Fill(thisTrack->eta());
+    if ( (thisTrack->eta() > 2.4) && (thisTrack->eta() < 4.0)) TrackCount++;
     std::cout<<thisTrack->eta()<<std::endl;
   }
 
@@ -177,6 +180,7 @@ void TestAnalyzer_Final::endJob()
   Mass_h->Write();
   std::cout<<NumCands<<std::endl;
   std::cout<<NumSegs<<std::endl;
+  std::cout<<TrackCount<<std::endl;
   delete histoFile; histoFile = 0;
 }
 

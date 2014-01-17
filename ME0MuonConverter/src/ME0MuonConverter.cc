@@ -4,7 +4,6 @@
  */
 
 #include <ME0Reconstruction/ME0MuonConverter/src/ME0MuonConverter.h>
-//#include <RecoLocalMuon/ME0Segment/src/ME0SegmentBuilder.h>
 
 #include <FWCore/PluginManager/interface/ModuleDef.h>
 #include <FWCore/Framework/interface/MakerMacros.h>
@@ -27,41 +26,25 @@
 #include "TrackingTools/GeomPropagators/interface/Propagator.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
 #include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
-//#include "DataFormats/BeamSpot/interface/BeamSpot.h"
 
 #include "TLorentzVector.h"
-//#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 
 #include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
-//#include "TRandom3.h"
-// #include "DataFormats/GeometrySurface/interface/Plane.h"
-// #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
-// #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
 
-// #include "DataFormats/Math/interface/deltaR.h"
-// #include "DataFormats/Math/interface/deltaPhi.h"
 
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 
 
-//#include "FWCore/Framework/interface/EDProducer.h"
-//#include "FWCore/Utilities/interface/InputTag.h"
-
-
 ME0MuonConverter::ME0MuonConverter(const edm::ParameterSet& pas) : iev(0) {
 	
   produces<std::vector<reco::RecoChargedCandidate> >();  
-  
-  NumRecoChargedCandidates = 0;
 }
 
-ME0MuonConverter::~ME0MuonConverter() {
-  std::cout<<NumRecoChargedCandidates<<" candidates saved"<<std::endl;
-}
+ME0MuonConverter::~ME0MuonConverter() {}
 
 void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
@@ -72,15 +55,10 @@ void ME0MuonConverter::produce(edm::Event& ev, const edm::EventSetup& setup) {
   Handle <std::vector<ME0Muon> > OurMuons;
   ev.getByLabel <std::vector<ME0Muon> > ("me0SegmentMatcher", OurMuons);
   
-  //std::auto_ptr<std::vector<RecoChargedCandidate> > oc( new std::vector<RecoChargedCandidate> ); 
-
-
   std::auto_ptr<RecoChargedCandidateCollection> oc( new RecoChargedCandidateCollection());
 
   for (std::vector<ME0Muon>::const_iterator thisMuon = OurMuons->begin();
        thisMuon != OurMuons->end(); ++thisMuon){
-    NumRecoChargedCandidates++;
-
 
     TrackRef tkRef = thisMuon->innerTrack();
     

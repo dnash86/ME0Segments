@@ -27,7 +27,7 @@
 #include "TrackingTools/GeomPropagators/interface/Propagator.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
 #include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
-//#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+
 
 #include "TLorentzVector.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
@@ -41,12 +41,12 @@
 
 //==========================
 
-//class ME0SegmentBuilder; 
+
 
 class FreeTrajectoryState;
 class MagneticField;
 class TRandom3;
-//class AlgebraicMatrix;
+
 class ME0SegmentProducer : public edm::EDProducer {
 public:
     /// Constructor
@@ -73,9 +73,7 @@ public:
 
 private:
     TRandom3 * Rand;
-    int iev; // events through
-    //edm::InputTag inputObjectsTag; // input tag labelling rechits for input
-    //ME0SegmentBuilder* segmentBuilder_;
+    int iev; 
 };
 
 #endif

@@ -1,7 +1,7 @@
 /** \file ME0Segment.cc
  *
  *  $Date: 2013/04/22 22:41:33 $
- *  \author Matteo Sani
+ *  \author David Nash
  */
 
 #include <ME0Reconstruction/ME0Segment/interface/ME0Segment.h>

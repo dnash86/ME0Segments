@@ -29,7 +29,6 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 
 
-//class ME0SegmentBuilder; 
 
 class ME0MuonConverter : public edm::EDProducer {
 public:
@@ -45,8 +44,6 @@ public:
 private:
 
     int iev; // events through
-    int NumRecoChargedCandidates;
-
 };
 
 #endif

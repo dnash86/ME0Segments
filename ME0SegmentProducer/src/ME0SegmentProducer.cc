@@ -4,7 +4,6 @@
  */
 
 #include <ME0Reconstruction/ME0SegmentProducer/src/ME0SegmentProducer.h>
-//#include <RecoLocalMuon/ME0Segment/src/ME0SegmentBuilder.h>
 
 #include <FWCore/PluginManager/interface/ModuleDef.h>
 #include <FWCore/Framework/interface/MakerMacros.h>
@@ -13,50 +12,29 @@
 #include <FWCore/Framework/interface/ESHandle.h>
 #include <FWCore/MessageLogger/interface/MessageLogger.h> 
 
-#include <Geometry/Records/interface/MuonGeometryRecord.h>
+#include "TRandom3.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixStateInfo.h"
 
+#include "TLorentzVector.h"
+
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
 
 ME0SegmentProducer::ME0SegmentProducer(const edm::ParameterSet& pas) : iev(0) {
 	
-  //inputObjectsTag = pas.getParameter<edm::InputTag>("inputObjects");
-    //segmentBuilder_ = new ME0SegmentBuilder(pas); // pass on the PS
     Rand = new TRandom3();
-  	// register what this produces
-    //produces<ME0SegmentCollection>();
-    produces<std::vector<ME0Segment> >();  //May have to later change this to something that makes more sense, OwnVector, RefVector, etc
-    NumSegs = 0;
+    produces<std::vector<ME0Segment> >(); 
+
 }
 
-ME0SegmentProducer::~ME0SegmentProducer() {
-
-  //LogDebug("ME0SegmentProducer") << "deleting ME0SegmentProducer after " << iev << " events w/csc data.";
-    //delete segmentBuilder_;
-  std::cout<<NumSegs<<" segments"<<std::endl;
-}
+ME0SegmentProducer::~ME0SegmentProducer() {}
 
 void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
     LogDebug("ME0SegmentProducer") << "start producing segments for " << ++iev << "th event ";
 	
-    // find the geometry (& conditions?) for this event & cache it in the builder
-  
-    // edm::ESHandle<ME0Geometry> h;
-    // setup.get<MuonGeometryRecord>().get(h);
-    // const ME0Geometry* pgeom = &*h;
-
-
-    //segmentBuilder_->setGeometry(pgeom);
-	
-    // get the collection of ME0RecHit2D
-
-    // edm::Handle<ME0RecHit2DCollection> cscRecHits;
-    // ev.getByLabel(inputObjectsTag, cscRecHits);  
-
-    // create empty collection of Segments
-    //std::auto_ptr<ME0SegmentCollection> oc( new ME0SegmentCollection );       //Change to collection
-
-    //Do the stuff, put the smeared stuff in to oc
-
     //Getting the objects we'll need
     
     using namespace edm;
@@ -74,22 +52,22 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
     unsigned int gensize=genParticles->size();
 
-    // LocalPoint Point;
-    // LocalVector Direction;
     AlgebraicSymMatrix theCovMatrix(4,0);
     AlgebraicSymMatrix theGlobalCovMatrix(4,0);
     AlgebraicMatrix theRotMatrix(4,4,0);
+
     //Big loop over all gen particles in the event, to propagate them and make segments
+
     std::auto_ptr<std::vector<ME0Segment> > oc( new std::vector<ME0Segment> ); 
-    //std::cout<<"Before loop"<<std::endl;
+
     for(unsigned int i=0; i<gensize; ++i) {
       const reco::GenParticle& CurrentParticle=(*genParticles)[i];
-      //Right now just doing status one muons...
+      //Just doing status one muons...
       if ( (CurrentParticle.status()==1) && ( (CurrentParticle.pdgId()==13)  || (CurrentParticle.pdgId()==-13) ) ){  
 
 	//Setup
 	float zSign  = CurrentParticle.pz()/fabs(CurrentParticle.pz());
-	std::cout<<"Sign = "<<zSign<<std::endl;
+
 	float zValue = 560. * zSign;
 	Plane *plane = new Plane(Surface::PositionType(0,0,zValue),Surface::RotationType());
 	TLorentzVector Momentum;
@@ -101,12 +79,12 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	GlobalVector r3gen = GlobalVector(CurrentParticle.vertex().x()
 						    ,CurrentParticle.vertex().y()
 						    ,CurrentParticle.vertex().z());
-	//std::cout<<"Before0"<<std::endl;
+
 	AlgebraicSymMatrix66 covGen = AlgebraicMatrixID(); 
 	covGen *= 1e-20; // initialize to sigma=1e-10 .. should get overwhelmed by MULS
 	AlgebraicSymMatrix66 covFinal;
 	int chargeGen =  CurrentParticle.charge(); 
-	//std::cout<<"Before1"<<std::endl;
+
 	//Propagation
 	FreeTrajectoryState initstate = getFTS(p3gen, r3gen, chargeGen, covGen, &*bField);
 	
@@ -115,16 +93,15 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 
 	const SteppingHelixPropagator* ThisshProp = 
 	  dynamic_cast<const SteppingHelixPropagator*>(&*shProp);
-	//std::cout<<"Before2"<<std::endl;
+
 	laststate = ThisshProp->propagate(startstate, *plane);
 
-	//std::cout<<"Before2.5"<<std::endl;
 	FreeTrajectoryState finalstate;
 	laststate.getFreeState(finalstate);
 	
 	GlobalVector p3Final, r3Final;
 	getFromFTS(finalstate, p3Final, r3Final, chargeGen, covFinal);
-	//std::cout<<"Before3"<<std::endl;
+
 	//Smearing the position
 
 	Double_t rho = r3Final.perp();
@@ -144,23 +121,16 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 				  dphidx*dphidy*2*covFinal(0,1) );
 	
 
-	Double_t newrho = rho + Rand->Gaus(0,sigmarho);//Add smearing here
+	Double_t newrho = rho + Rand->Gaus(0,sigmarho);    //Add smearing here
 	Double_t newphi = phi + Rand->Gaus(0,sigmaphi);
-	//std::cout<<"Before3"<<std::endl;
-	//GlobalVector SmearedPosition(1,1,1);
-	//std::cout<<"Pre smear: "<<r3Final.x()<<", "<<r3Final.y()<<", "<<r3Final.z()<<std::endl;
-	//std::cout<<"First: "<<newrho*cos(newphi)<<", "<<newrho*sin(newphi)<<", "<<r3Final.z()<<std::endl;
+
 	GlobalVector SmearedPosition(newrho*cos(newphi),newrho*sin(newphi),r3Final.z());
-	//std::cout<<"Then: "<<SmearedPosition.x()<<", "<<SmearedPosition.y()<<", "<<SmearedPosition.z()<<std::endl;
-	//SmearedPosition.setPerp(newrho);  SmearedPosition.SetPhi(newphi);  SmearedPosition.Setz(r3Final.z());
-	//SmearedPosition.set(1,1,1);
-	//Smearing the direction 
 	
 	Double_t sigma_px = covFinal(3,3);
 	Double_t sigma_py = covFinal(4,4);
 	Double_t sigma_pz = covFinal(5,5);
 
-	Double_t new_px = p3Final.x() + Rand->Gaus(0,sigma_px);//Add smearing here
+	Double_t new_px = p3Final.x() + Rand->Gaus(0,sigma_px);    //Add smearing here
 	Double_t new_py = p3Final.y() + Rand->Gaus(0,sigma_py);
 	Double_t new_pz = p3Final.z() + Rand->Gaus(0,sigma_pz);
 
@@ -171,18 +141,11 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	LocalPoint Point(SmearedPosition.x(),SmearedPosition.y(),SmearedPosition.z());
 	LocalVector Direction(SmearedDirection.x(),SmearedDirection.y(),SmearedDirection.z());
 
-	//theCovMatrix[2][3] = 0;//1e-20;
 	theCovMatrix[2][2] = 0.01;
 	theCovMatrix[3][3] = 2.;
 
-	//theCovMatrix[0][1] = 0;//1e-20;
 	theCovMatrix[0][0] = 0.00025;
 	theCovMatrix[1][1] = 0.07;
-
-	// theCovMatrix[0][2] = 0;//1e-20;
-	// theCovMatrix[0][3] = 0;//1e-20;
-	// theCovMatrix[1][2] = 0;//1e-20;
-	// theCovMatrix[1][3] = 0;//1e-20;
 
 	//Do the transformation to global coordinates on the Cov Matrix
 	double piover2 = acos(0.);
@@ -198,18 +161,12 @@ void ME0SegmentProducer::produce(edm::Event& ev, const edm::EventSetup& setup) {
 	theRotMatrix[3][2] = sin(SmearedPosition.phi()+piover2);
 
 	RotateCovMatrix(theRotMatrix,theCovMatrix,4,theGlobalCovMatrix);
-	if (abs(Point.eta() < 2.4) || abs(Point.eta() > 4.0)) continue; //Currently we only save segments that propagate to our defined disk
-	std::cout<<"Testing eta "<<Point.eta()<<", "<<-log(tan(atan(Point.perp()/560.)/2))<<", "<<-log(tan(atan(Point.perp()/Point.z())/2))<<std::endl;
-	std::cout<<Point.z()<<std::endl;
-	std::cout<<CurrentParticle.eta()<<std::endl;
-	std::cout<<Point.perp()<<", "<<Point.phi()<<std::endl;
-	oc->push_back(ME0Segment(Point, Direction,theGlobalCovMatrix,0.));    //Maybe we need a 'new' here?
-	NumSegs++;
-	//oc->push_back(ME0Segment());    //Maybe we need a 'new' here?
+	if (abs(Point.eta() < 2.4) || abs(Point.eta() > 4.0)) continue;         //Currently we only save segments that propagate to our defined disk
+	oc->push_back(ME0Segment(Point, Direction,theGlobalCovMatrix,0.));    
+
+
       }
     }
-  	// fill the collection
-    //segmentBuilder_->build(cscRecHits.product(), *oc); //@@ FILL oc
 
     // put collection in event
     ev.put(oc);
@@ -253,9 +210,7 @@ void ME0SegmentProducer::getFromFTS(const FreeTrajectoryState& fts,
   GlobalVector r3T(r3GP.x(), r3GP.y(), r3GP.z());
   
   p3 = p3T;
-  r3 = r3T;   //Yikes, was setting this to p3T instead of r3T!?!
-  // p3.set(p3GV.x(), p3GV.y(), p3GV.z());
-  // r3.set(r3GP.x(), r3GP.y(), r3GP.z());
+  r3 = r3T;  
   
   charge = fts.charge();
   cov = fts.hasError() ? fts.cartesianError().matrix() : AlgebraicSymMatrix66();

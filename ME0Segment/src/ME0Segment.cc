@@ -14,23 +14,6 @@ ME0Segment::ME0Segment(LocalPoint origin,  	LocalVector direction, AlgebraicSymM
 
 ME0Segment::~ME0Segment() {}
 
-// std::vector<const TrackingRecHit*> ME0Segment::recHits() const{
-//   std::vector<const TrackingRecHit*> pointersOfRecHits;
-//   for (std::vector<ME0RecHit2D>::const_iterator irh = theME0RecHits.begin(); irh!=theME0RecHits.end(); ++irh) {
-//     pointersOfRecHits.push_back(&(*irh));
-//   }
-//   return pointersOfRecHits;
-// }
-
-// std::vector<TrackingRecHit*> ME0Segment::recHits() {
-  
-//   std::vector<TrackingRecHit*> pointersOfRecHits;
-//   for (std::vector<ME0RecHit2D>::iterator irh = theME0RecHits.begin(); irh!=theME0RecHits.end(); ++irh) {
-//     pointersOfRecHits.push_back(&(*irh));
-//   }
-//   return pointersOfRecHits;
-// }
-
 LocalError ME0Segment::localPositionError() const {
   return LocalError(theCovMatrix[2][2], theCovMatrix[2][3], theCovMatrix[3][3]);
 }
@@ -82,7 +65,3 @@ std::ostream& operator<<(std::ostream& os, const ME0Segment& seg) {
     "0,)\n";
   return os;  
 }
-
-/*
-const ME0Chamber* ME0Segment::chamber() const { return theChamber; }
-*/
